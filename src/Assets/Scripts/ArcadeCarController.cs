@@ -173,7 +173,7 @@ namespace DeskRacers
             if (throttle > 0.05f)
             {
                 targetSpeed = maxSpeed;
-                speedChange = acceleration;
+                speedChange = currentSpeed < -0.2f ? brakeDrag * acceleration : acceleration;
             }
             else if (throttle < -0.05f)
             {
