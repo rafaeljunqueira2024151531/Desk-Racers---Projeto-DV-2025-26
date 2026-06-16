@@ -14,6 +14,7 @@ namespace DeskRacers
         public string trackName = "Setup Gamer";
         public int totalLaps = 3;
         public int checkpointCount = 4;
+        public Transform startRespawnPoint;
 
         [Header("UI")]
         public Text speedText;
@@ -28,6 +29,9 @@ namespace DeskRacers
         float elapsedTime;
         bool paused;
         bool unlockAll;
+        Vector3 lastCheckpointPosition;
+        Quaternion lastCheckpointRotation;
+        RaceCheckpoint[] checkpoints;
 
         string SavePath => Path.Combine(Application.persistentDataPath, "deskracers_save.json");
         string LogPath => Path.Combine(Application.persistentDataPath, "log.txt");
@@ -36,6 +40,16 @@ namespace DeskRacers
         void Start()
         {
             Time.timeScale = 1f;
+            if (player != null)
+            {
+                Transform respawn = startRespawnPoint != null ? startRespawnPoint : player.transform;
+                lastCheckpointPosition = respawn.position;
+                lastCheckpointRotation = respawn.rotation;
+            }
+
+            checkpoints = FindObjectsByType<RaceCheckpoint>(FindObjectsInactive.Include);
+            RefreshCheckpointVisuals();
+
             if (pausePanel != null)
             {
                 pausePanel.SetActive(false);
@@ -64,6 +78,11 @@ namespace DeskRacers
             {
                 unlockAll = true;
                 ShowMessage("Cheat F2: pistas desbloqueadas.");
+            }
+
+            if (keyboard != null && keyboard.rKey.wasPressedThisFrame)
+            {
+                RespawnAtLastCheckpoint();
             }
 
             RefreshHud();
@@ -116,29 +135,34 @@ namespace DeskRacers
         }
 
         // Regista a passagem por um checkpoint na ordem certa.
-        public void RegisterCheckpoint(int checkpointIndex)
+        public void RegisterCheckpoint(int checkpointIndex, Transform checkpointTransform)
         {
             if (checkpointIndex != nextCheckpoint)
             {
                 return;
             }
 
+            SaveCheckpointRespawn(checkpointTransform);
             nextCheckpoint++;
             if (nextCheckpoint >= checkpointCount)
             {
                 nextCheckpoint = 0;
             }
+
+            RefreshCheckpointVisuals();
         }
 
         // Tenta contar uma volta quando o jogador passa pela meta.
-        public void TryRegisterLap()
+        public void TryRegisterLap(int finishCheckpointIndex, Transform finishTransform)
         {
-            if (nextCheckpoint != 0)
+            if (nextCheckpoint != finishCheckpointIndex)
             {
                 ShowMessage("Volta invalida: passa pelos checkpoints.");
                 return;
             }
 
+            SaveCheckpointRespawn(finishTransform);
+            nextCheckpoint = 0;
             lap++;
             if (lap > totalLaps)
             {
@@ -149,6 +173,32 @@ namespace DeskRacers
             {
                 ShowMessage($"Volta {lap}/{totalLaps}");
             }
+
+            RefreshCheckpointVisuals();
+        }
+
+        // Volta o jogador ao ultimo checkpoint valido.
+        public void RespawnAtLastCheckpoint()
+        {
+            if (player == null)
+            {
+                return;
+            }
+
+            player.TeleportTo(lastCheckpointPosition, lastCheckpointRotation, player.Coins);
+            ShowMessage("Reposicionado no ultimo checkpoint.");
+        }
+
+        // Guarda a posicao e rotacao usadas para respawn.
+        void SaveCheckpointRespawn(Transform checkpointTransform)
+        {
+            if (checkpointTransform == null)
+            {
+                return;
+            }
+
+            lastCheckpointPosition = checkpointTransform.position;
+            lastCheckpointRotation = checkpointTransform.rotation;
         }
 
         // Grava o estado essencial da corrida em JSON.
@@ -169,7 +219,9 @@ namespace DeskRacers
                 nextCheckpoint = nextCheckpoint,
                 elapsedTime = elapsedTime,
                 coins = player.Coins,
-                unlockAll = unlockAll
+                unlockAll = unlockAll,
+                lastCheckpointPosition = lastCheckpointPosition,
+                lastCheckpointRotation = lastCheckpointRotation
             };
 
             File.WriteAllText(SavePath, JsonUtility.ToJson(data, true));
@@ -191,9 +243,27 @@ namespace DeskRacers
             nextCheckpoint = Mathf.Clamp(data.nextCheckpoint, 0, checkpointCount - 1);
             elapsedTime = Mathf.Max(0f, data.elapsedTime);
             unlockAll = data.unlockAll;
+            lastCheckpointPosition = data.lastCheckpointPosition;
+            lastCheckpointRotation = data.lastCheckpointRotation;
             player.TeleportTo(data.position, data.rotation, data.coins);
             AppendLog($"Load executado na Volta {lap} aos {FormatTime(elapsedTime)}");
             ShowMessage("Jogo carregado.");
+            RefreshCheckpointVisuals();
+        }
+
+        // Mostra o proximo checkpoint e apaga os restantes indicadores.
+        void RefreshCheckpointVisuals()
+        {
+            if (checkpoints == null)
+            {
+                return;
+            }
+
+            foreach (RaceCheckpoint checkpoint in checkpoints)
+            {
+                bool shouldShow = checkpoint.checkpointIndex == nextCheckpoint;
+                checkpoint.SetVisualActive(shouldShow);
+            }
         }
 
         // Recarrega a scene actual.
@@ -259,5 +329,7 @@ namespace DeskRacers
         public float elapsedTime;
         public int coins;
         public bool unlockAll;
+        public Vector3 lastCheckpointPosition;
+        public Quaternion lastCheckpointRotation;
     }
 }

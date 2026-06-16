@@ -7,6 +7,8 @@ namespace DeskRacers
         public bool isFinishLine;
         public int checkpointIndex;
         public RaceManager raceManager;
+        public Transform respawnPoint;
+        public GameObject visualObject;
 
         // Detecta o carro e informa o RaceManager.
         void OnTriggerEnter(Collider other)
@@ -19,12 +21,27 @@ namespace DeskRacers
 
             if (isFinishLine)
             {
-                raceManager.TryRegisterLap();
+                raceManager.TryRegisterLap(checkpointIndex, GetRespawnTransform());
             }
             else
             {
-                raceManager.RegisterCheckpoint(checkpointIndex);
+                raceManager.RegisterCheckpoint(checkpointIndex, GetRespawnTransform());
             }
+        }
+
+        // Liga ou desliga o indicador visual deste checkpoint.
+        public void SetVisualActive(bool active)
+        {
+            if (visualObject != null)
+            {
+                visualObject.SetActive(active);
+            }
+        }
+
+        // Devolve o ponto exacto onde o carro deve reaparecer.
+        Transform GetRespawnTransform()
+        {
+            return respawnPoint != null ? respawnPoint : transform;
         }
     }
 }
