@@ -174,33 +174,39 @@ namespace DeskRacers
 
             if (throttle > 0.05f)
             {
-                targetSpeed = maxSpeed;
                 if (currentSpeed < -0.05f)
                 {
-                    currentSpeed = 0f;
+                    targetSpeed = 0f;
+                    speedChange = acceleration * directionChangeMultiplier;
                 }
-
-                if (currentSpeed < launchSpeed)
+                else
                 {
-                    currentSpeed = launchSpeed;
-                }
+                    targetSpeed = maxSpeed;
+                    speedChange = acceleration;
 
-                speedChange = acceleration;
+                    if (currentSpeed < launchSpeed)
+                    {
+                        currentSpeed = launchSpeed;
+                    }
+                }
             }
             else if (throttle < -0.05f)
             {
-                targetSpeed = -maxReverseSpeed;
                 if (currentSpeed > 0.05f)
                 {
-                    currentSpeed = 0f;
+                    targetSpeed = 0f;
+                    speedChange = reverseAcceleration * directionChangeMultiplier;
                 }
-
-                if (currentSpeed > -launchSpeed)
+                else
                 {
-                    currentSpeed = -Mathf.Min(launchSpeed, maxReverseSpeed);
-                }
+                    targetSpeed = -maxReverseSpeed;
+                    speedChange = reverseAcceleration;
 
-                speedChange = reverseAcceleration;
+                    if (currentSpeed > -launchSpeed)
+                    {
+                        currentSpeed = -Mathf.Min(launchSpeed, maxReverseSpeed);
+                    }
+                }
             }
 
             currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, speedChange * Time.fixedDeltaTime);
