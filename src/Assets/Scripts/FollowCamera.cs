@@ -17,7 +17,7 @@ namespace DeskRacers
                 return;
             }
 
-            Vector3 desiredPosition = target.TransformPoint(offset);
+            Vector3 desiredPosition = target.position + target.rotation * offset;
             transform.position = Vector3.Lerp(transform.position, desiredPosition, 1f - Mathf.Exp(-followSharpness * Time.deltaTime));
             Vector3 lookTarget = target.position + target.forward * lookAhead;
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(lookTarget - transform.position, Vector3.up), 1f - Mathf.Exp(-followSharpness * Time.deltaTime));

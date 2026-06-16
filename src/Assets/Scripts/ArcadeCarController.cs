@@ -14,6 +14,8 @@ namespace DeskRacers
         public float normalGrip = 7f;
         public float driftGrip = 2.4f;
         public float brakeDrag = 2.5f;
+        public float maxReverseSpeed = 3f;
+        public float coastDeceleration = 1.2f;
 
         [Header("Drift e turbo")]
         public float driftChargeSpeed = 0.7f;
@@ -35,6 +37,7 @@ namespace DeskRacers
         float steering;
         float turboTimer;
         float driftCharge;
+        float currentSpeed;
         bool driftHeld;
         bool inputLocked;
         float gripMultiplier = 1f;
@@ -48,7 +51,7 @@ namespace DeskRacers
             rb = GetComponent<Rigidbody>();
             colliders = GetComponentsInChildren<Collider>();
             rb.mass = 0.65f;
-            rb.linearDamping = 0.25f;
+            rb.linearDamping = 0.05f;
             rb.angularDamping = 1.6f;
             rb.interpolation = RigidbodyInterpolation.Interpolate;
             rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
@@ -73,7 +76,6 @@ namespace DeskRacers
         // Aplica fisica arcade ao carro em tempo fixo.
         void FixedUpdate()
         {
-            ApplySideGrip();
             ApplyAcceleration();
             ApplySteering();
             ApplyTurbo();
@@ -147,7 +149,7 @@ namespace DeskRacers
             }
         }
 
-        // Aplica uma correcao lateral para o carro nao deslizar demasiado.
+        // Mantem velocidade lateral controlada para simular aderencia arcade.
         void ApplySideGrip()
         {
             Vector3 localVelocity = transform.InverseTransformDirection(rb.linearVelocity);
@@ -161,29 +163,43 @@ namespace DeskRacers
             }
         }
 
-        // Aplica aceleracao, marcha atras e limite de velocidade.
+        // Controla a velocidade do carro directamente para garantir embalo e marcha atras.
         void ApplyAcceleration()
         {
-            float accel = throttle >= 0f ? acceleration : reverseAcceleration;
+            Vector3 localVelocity = transform.InverseTransformDirection(rb.linearVelocity);
+            float targetSpeed = 0f;
+            float speedChange = coastDeceleration;
 
-            if (rb.linearVelocity.magnitude < maxSpeed || throttle < 0f)
+            if (throttle > 0.05f)
             {
-                rb.AddForce(transform.forward * throttle * accel, ForceMode.Acceleration);
+                targetSpeed = maxSpeed;
+                speedChange = acceleration;
+            }
+            else if (throttle < -0.05f)
+            {
+                targetSpeed = -maxReverseSpeed;
+                speedChange = currentSpeed > 0.2f ? brakeDrag * reverseAcceleration : reverseAcceleration;
             }
 
-            rb.linearDamping = throttle < -0.1f ? brakeDrag : 0.25f;
+            currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, speedChange * Time.fixedDeltaTime);
+
+            float targetGrip = driftHeld ? driftGrip : normalGrip;
+            localVelocity.x = Mathf.Lerp(localVelocity.x, 0f, targetGrip * gripMultiplier * Time.fixedDeltaTime);
+            localVelocity.z = currentSpeed;
+            rb.linearVelocity = transform.TransformDirection(localVelocity);
+            rb.linearDamping = 0.05f;
         }
 
         // Roda o carro de forma arcade, mais estavel a alta velocidade.
         void ApplySteering()
         {
-            if (rb.linearVelocity.magnitude < 0.4f)
+            if (Mathf.Abs(currentSpeed) < 0.05f)
             {
                 return;
             }
 
-            float speedFactor = Mathf.Clamp01(rb.linearVelocity.magnitude / maxSpeed);
-            float direction = Vector3.Dot(rb.linearVelocity, transform.forward) >= 0f ? 1f : -1f;
+            float speedFactor = Mathf.Clamp01(Mathf.Abs(currentSpeed) / maxSpeed);
+            float direction = currentSpeed >= 0f ? 1f : -1f;
             float turn = steering * turnSpeed * direction * Mathf.Lerp(1f, 0.55f, speedFactor) * Time.fixedDeltaTime;
             rb.MoveRotation(rb.rotation * Quaternion.Euler(0f, turn, 0f));
         }
@@ -197,7 +213,7 @@ namespace DeskRacers
             }
 
             turboTimer -= Time.fixedDeltaTime;
-            rb.AddForce(transform.forward * turboForce, ForceMode.Acceleration);
+            currentSpeed = Mathf.Min(maxSpeed + turboForce, currentSpeed + turboForce * Time.fixedDeltaTime);
         }
 
         // Converte carga de drift num pequeno turbo.
@@ -236,7 +252,7 @@ namespace DeskRacers
 
             if (keyboard.f1Key.wasPressedThisFrame)
             {
-                rb.linearVelocity = transform.forward * maxSpeed;
+                currentSpeed = maxSpeed;
             }
 
             if (keyboard.f3Key.wasPressedThisFrame)
@@ -313,6 +329,7 @@ namespace DeskRacers
             Coins = savedCoins;
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
+            currentSpeed = 0f;
         }
     }
 
