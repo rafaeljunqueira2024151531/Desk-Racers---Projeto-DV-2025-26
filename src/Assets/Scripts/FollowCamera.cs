@@ -5,10 +5,11 @@ namespace DeskRacers
     public class FollowCamera : MonoBehaviour
     {
         public Transform target;
-        public Vector3 offset = new Vector3(0f, 5f, -7f);
+        public Vector3 offset = new Vector3(0f, 4.8f, -6.5f);
         public float followSharpness = 8f;
         public float lookAhead = 2.5f;
 
+        // Segue o carro no fim do frame para evitar tremores.
         void LateUpdate()
         {
             if (target == null)

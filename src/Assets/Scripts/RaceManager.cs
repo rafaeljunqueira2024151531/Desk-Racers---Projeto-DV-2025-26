@@ -7,91 +7,69 @@ using UnityEngine.UI;
 
 namespace DeskRacers
 {
-    public class RaceGameManager : MonoBehaviour
+    public class RaceManager : MonoBehaviour
     {
-        public DeskRacersCarController player;
+        [Header("Corrida")]
+        public ArcadeCarController player;
+        public string trackName = "Setup Gamer";
+        public int totalLaps = 3;
+        public int checkpointCount = 4;
+
+        [Header("UI")]
         public Text speedText;
-        public Text positionText;
         public Text lapText;
+        public Text positionText;
         public Text powerUpText;
         public Text messageText;
-        public GameObject mainMenuPanel;
         public GameObject pausePanel;
-        public GameObject creditsPanel;
-        public Slider volumeSlider;
-        public Slider sensitivitySlider;
-
-        public int totalLaps = 3;
-        public string currentTrack = "Setup Gamer";
 
         int lap = 1;
-        float elapsed;
+        int nextCheckpoint;
+        float elapsedTime;
         bool paused;
-        bool raceStarted;
         bool unlockAll;
 
         string SavePath => Path.Combine(Application.persistentDataPath, "deskracers_save.json");
         string LogPath => Path.Combine(Application.persistentDataPath, "log.txt");
 
-        public int CurrentLap => lap;
-        public float Elapsed => elapsed;
-
+        // Inicializa o estado da corrida e fecha o menu de pausa.
         void Start()
         {
-            Time.timeScale = mainMenuPanel != null ? 0f : 1f;
+            Time.timeScale = 1f;
             if (pausePanel != null)
             {
                 pausePanel.SetActive(false);
             }
-
-            if (mainMenuPanel != null)
-            {
-                mainMenuPanel.SetActive(true);
-            }
-
-            if (creditsPanel != null)
-            {
-                creditsPanel.SetActive(false);
-            }
-
-            if (volumeSlider != null)
-            {
-                volumeSlider.value = AudioListener.volume;
-                volumeSlider.onValueChanged.AddListener(value => AudioListener.volume = value);
-            }
-
-            if (sensitivitySlider != null && player != null)
-            {
-                sensitivitySlider.value = player.turnStrength;
-                sensitivitySlider.onValueChanged.AddListener(value => player.turnStrength = value);
-            }
         }
 
+        // Actualiza tempo, UI, pausa e cheats globais.
         void Update()
         {
             if (!paused)
             {
-                elapsed += Time.deltaTime;
+                elapsedTime += Time.deltaTime;
             }
 
             Keyboard keyboard = Keyboard.current;
-            if (keyboard != null)
-            {
-                if (keyboard.escapeKey.wasPressedThisFrame)
-                {
-                    TogglePause();
-                }
+            Gamepad pad = Gamepad.current;
+            bool pausePressed = keyboard != null && keyboard.escapeKey.wasPressedThisFrame;
+            pausePressed = pausePressed || (pad != null && pad.startButton.wasPressedThisFrame);
 
-                if (keyboard.f2Key.wasPressedThisFrame)
-                {
-                    unlockAll = true;
-                    ShowMessage("Cheat F2: todas as pistas desbloqueadas.");
-                }
+            if (pausePressed)
+            {
+                TogglePause();
+            }
+
+            if (keyboard != null && keyboard.f2Key.wasPressedThisFrame)
+            {
+                unlockAll = true;
+                ShowMessage("Cheat F2: pistas desbloqueadas.");
             }
 
             RefreshHud();
         }
 
+        // Actualiza os textos do HUD com os dados actuais.
         void RefreshHud()
         {
             if (player == null)
@@ -101,12 +79,7 @@ namespace DeskRacers
 
             if (speedText != null)
             {
-                speedText.text = $"{player.SpeedKmh:000} cm/s";
-            }
-
-            if (positionText != null)
-            {
-                positionText.text = "1/4";
+                speedText.text = $"{player.SpeedMiniUnits:000} cm/s";
             }
 
             if (lapText != null)
@@ -114,71 +87,63 @@ namespace DeskRacers
                 lapText.text = $"{lap}/{totalLaps}";
             }
 
+            if (positionText != null)
+            {
+                positionText.text = "1/4";
+            }
+
             if (powerUpText != null)
             {
-                powerUpText.text = player.PowerUpName;
+                powerUpText.text = player.currentPowerUp.ToString();
             }
         }
 
+        // Abre ou fecha o menu de pausa.
         public void TogglePause()
         {
-            if (!raceStarted)
-            {
-                if (pausePanel != null)
-                {
-                    pausePanel.SetActive(false);
-                }
-
-                return;
-            }
-
             paused = !paused;
             Time.timeScale = paused ? 0f : 1f;
+
+            if (player != null)
+            {
+                player.SetInputLocked(paused);
+            }
+
             if (pausePanel != null)
             {
                 pausePanel.SetActive(paused);
             }
         }
 
-        public void StartRace()
+        // Regista a passagem por um checkpoint na ordem certa.
+        public void RegisterCheckpoint(int checkpointIndex)
         {
-            raceStarted = true;
-            paused = false;
-            Time.timeScale = 1f;
-            if (mainMenuPanel != null)
+            if (checkpointIndex != nextCheckpoint)
             {
-                mainMenuPanel.SetActive(false);
+                return;
             }
 
-            if (creditsPanel != null)
+            nextCheckpoint++;
+            if (nextCheckpoint >= checkpointCount)
             {
-                creditsPanel.SetActive(false);
-            }
-        }
-
-        public void ShowCredits()
-        {
-            if (creditsPanel != null)
-            {
-                creditsPanel.SetActive(true);
+                nextCheckpoint = 0;
             }
         }
 
-        public void HideCredits()
+        // Tenta contar uma volta quando o jogador passa pela meta.
+        public void TryRegisterLap()
         {
-            if (creditsPanel != null)
+            if (nextCheckpoint != 0)
             {
-                creditsPanel.SetActive(false);
+                ShowMessage("Volta invalida: passa pelos checkpoints.");
+                return;
             }
-        }
 
-        public void RegisterLap()
-        {
             lap++;
             if (lap > totalLaps)
             {
                 lap = totalLaps;
-                ShowMessage($"Corrida concluida em {FormatTime(elapsed)}");
+                ShowMessage($"Corrida terminada em {FormatTime(elapsedTime)}");
             }
             else
             {
@@ -186,6 +151,7 @@ namespace DeskRacers
             }
         }
 
+        // Grava o estado essencial da corrida em JSON.
         public void SaveGame()
         {
             if (player == null)
@@ -195,48 +161,62 @@ namespace DeskRacers
 
             SaveData data = new SaveData
             {
-                currentTrack = currentTrack,
+                sceneName = SceneManager.GetActiveScene().name,
+                trackName = trackName,
                 position = player.transform.position,
                 rotation = player.transform.rotation,
                 lap = lap,
-                elapsed = elapsed,
+                nextCheckpoint = nextCheckpoint,
+                elapsedTime = elapsedTime,
                 coins = player.Coins,
                 unlockAll = unlockAll
             };
 
             File.WriteAllText(SavePath, JsonUtility.ToJson(data, true));
-            AppendLog($"Save executado na Volta {lap} aos {FormatTime(elapsed)}");
+            AppendLog($"Save executado na Volta {lap} aos {FormatTime(elapsedTime)}");
             ShowMessage("Jogo gravado.");
         }
 
+        // Carrega o estado guardado se existir um save.
         public void LoadGame()
         {
             if (!File.Exists(SavePath) || player == null)
             {
-                ShowMessage("Ainda nao existe save.");
+                ShowMessage("Nao existe save.");
                 return;
             }
 
             SaveData data = JsonUtility.FromJson<SaveData>(File.ReadAllText(SavePath));
-            currentTrack = data.currentTrack;
             lap = Mathf.Clamp(data.lap, 1, totalLaps);
-            elapsed = Mathf.Max(0f, data.elapsed);
+            nextCheckpoint = Mathf.Clamp(data.nextCheckpoint, 0, checkpointCount - 1);
+            elapsedTime = Mathf.Max(0f, data.elapsedTime);
             unlockAll = data.unlockAll;
-            player.LoadState(data.position, data.rotation, data.coins);
-            AppendLog($"Load executado na Volta {lap} aos {FormatTime(elapsed)}");
+            player.TeleportTo(data.position, data.rotation, data.coins);
+            AppendLog($"Load executado na Volta {lap} aos {FormatTime(elapsedTime)}");
             ShowMessage("Jogo carregado.");
         }
 
-        public void QuitGame()
+        // Recarrega a scene actual.
+        public void RestartRace()
         {
-            Application.Quit();
+            Time.timeScale = 1f;
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
 
+        // Volta para a scene de menu principal.
+        public void BackToMenu()
+        {
+            Time.timeScale = 1f;
+            SceneManager.LoadScene("MainMenu");
+        }
+
+        // Escreve uma linha no log anti-save scumming.
         void AppendLog(string line)
         {
             File.AppendAllText(LogPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {line}{Environment.NewLine}");
         }
 
+        // Mostra uma mensagem temporaria no ecra.
         void ShowMessage(string message)
         {
             if (messageText == null)
@@ -249,6 +229,7 @@ namespace DeskRacers
             Invoke(nameof(ClearMessage), 3f);
         }
 
+        // Limpa a mensagem temporaria do HUD.
         void ClearMessage()
         {
             if (messageText != null)
@@ -257,6 +238,7 @@ namespace DeskRacers
             }
         }
 
+        // Formata segundos em mm:ss.
         static string FormatTime(float time)
         {
             int minutes = Mathf.FloorToInt(time / 60f);
@@ -268,11 +250,13 @@ namespace DeskRacers
     [Serializable]
     public class SaveData
     {
-        public string currentTrack;
+        public string sceneName;
+        public string trackName;
         public Vector3 position;
         public Quaternion rotation;
         public int lap;
-        public float elapsed;
+        public int nextCheckpoint;
+        public float elapsedTime;
         public int coins;
         public bool unlockAll;
     }
