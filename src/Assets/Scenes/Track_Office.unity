@@ -27643,7 +27643,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8907482837710568082, guid: fcf42b724d1f3bd45b3152de811530de, type: 3}
       propertyPath: maxSpeed
-      value: 8
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 8907482837710568082, guid: fcf42b724d1f3bd45b3152de811530de, type: 3}
       propertyPath: brakeDrag
@@ -27667,7 +27667,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8907482837710568082, guid: fcf42b724d1f3bd45b3152de811530de, type: 3}
       propertyPath: normalGrip
-      value: 8
+      value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 8907482837710568082, guid: fcf42b724d1f3bd45b3152de811530de, type: 3}
       propertyPath: turboForce
@@ -27675,11 +27675,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8907482837710568082, guid: fcf42b724d1f3bd45b3152de811530de, type: 3}
       propertyPath: acceleration
-      value: 12.5
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8907482837710568082, guid: fcf42b724d1f3bd45b3152de811530de, type: 3}
+      propertyPath: maxReverseSpeed
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8907482837710568082, guid: fcf42b724d1f3bd45b3152de811530de, type: 3}
+      propertyPath: coastDeceleration
+      value: 0.6
       objectReference: {fileID: 0}
     - target: {fileID: 8907482837710568082, guid: fcf42b724d1f3bd45b3152de811530de, type: 3}
       propertyPath: reverseAcceleration
-      value: 8
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 8907482837710568082, guid: fcf42b724d1f3bd45b3152de811530de, type: 3}
+      propertyPath: directionChangeMultiplier
+      value: 4
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

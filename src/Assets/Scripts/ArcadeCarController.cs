@@ -16,6 +16,8 @@ namespace DeskRacers
         public float brakeDrag = 2.5f;
         public float maxReverseSpeed = 3f;
         public float coastDeceleration = 1.2f;
+        public float directionChangeMultiplier = 2.5f;
+        public float launchSpeed = 1.2f;
 
         [Header("Drift e turbo")]
         public float driftChargeSpeed = 0.7f;
@@ -173,18 +175,47 @@ namespace DeskRacers
             if (throttle > 0.05f)
             {
                 targetSpeed = maxSpeed;
-                speedChange = currentSpeed < -0.2f ? brakeDrag * acceleration : acceleration;
+                if (currentSpeed < -0.05f)
+                {
+                    currentSpeed = 0f;
+                }
+
+                if (currentSpeed < launchSpeed)
+                {
+                    currentSpeed = launchSpeed;
+                }
+
+                speedChange = acceleration;
             }
             else if (throttle < -0.05f)
             {
                 targetSpeed = -maxReverseSpeed;
-                speedChange = currentSpeed > 0.2f ? brakeDrag * reverseAcceleration : reverseAcceleration;
+                if (currentSpeed > 0.05f)
+                {
+                    currentSpeed = 0f;
+                }
+
+                if (currentSpeed > -launchSpeed)
+                {
+                    currentSpeed = -Mathf.Min(launchSpeed, maxReverseSpeed);
+                }
+
+                speedChange = reverseAcceleration;
             }
 
             currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, speedChange * Time.fixedDeltaTime);
 
             float targetGrip = driftHeld ? driftGrip : normalGrip;
-            localVelocity.x = Mathf.Lerp(localVelocity.x, 0f, targetGrip * gripMultiplier * Time.fixedDeltaTime);
+            if (Mathf.Abs(steering) < 0.05f)
+            {
+                localVelocity.x = 0f;
+                rb.angularVelocity = new Vector3(0f, Mathf.Lerp(rb.angularVelocity.y, 0f, 12f * Time.fixedDeltaTime), 0f);
+            }
+            else
+            {
+                localVelocity.x = Mathf.Lerp(localVelocity.x, 0f, targetGrip * gripMultiplier * Time.fixedDeltaTime);
+            }
+
             localVelocity.z = currentSpeed;
             rb.linearVelocity = transform.TransformDirection(localVelocity);
             rb.linearDamping = 0.05f;
