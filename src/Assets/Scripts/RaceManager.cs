@@ -29,6 +29,7 @@ namespace DeskRacers
         float elapsedTime;
         bool paused;
         bool unlockAll;
+        bool raceFinished;
         Vector3 lastCheckpointPosition;
         Quaternion lastCheckpointRotation;
         RaceCheckpoint[] checkpoints;
@@ -59,7 +60,7 @@ namespace DeskRacers
         // Actualiza tempo, UI, pausa e cheats globais.
         void Update()
         {
-            if (!paused)
+            if (!paused && !raceFinished)
             {
                 elapsedTime += Time.deltaTime;
             }
@@ -81,6 +82,11 @@ namespace DeskRacers
             }
 
             if (keyboard != null && keyboard.rKey.wasPressedThisFrame)
+            {
+                RespawnAtLastCheckpoint();
+            }
+
+            if (pad != null && (pad.selectButton.wasPressedThisFrame || pad.leftStickButton.wasPressedThisFrame))
             {
                 RespawnAtLastCheckpoint();
             }
@@ -137,6 +143,11 @@ namespace DeskRacers
         // Regista a passagem por um checkpoint na ordem certa.
         public void RegisterCheckpoint(int checkpointIndex, Transform checkpointTransform)
         {
+            if (raceFinished)
+            {
+                return;
+            }
+
             if (checkpointIndex != nextCheckpoint)
             {
                 return;
@@ -155,6 +166,11 @@ namespace DeskRacers
         // Tenta contar uma volta quando o jogador passa pela meta.
         public void TryRegisterLap(int finishCheckpointIndex, Transform finishTransform)
         {
+            if (raceFinished)
+            {
+                return;
+            }
+
             if (nextCheckpoint != finishCheckpointIndex)
             {
                 ShowMessage("Volta invalida: passa pelos checkpoints.");
@@ -167,7 +183,7 @@ namespace DeskRacers
             if (lap > totalLaps)
             {
                 lap = totalLaps;
-                ShowMessage($"Corrida terminada em {FormatTime(elapsedTime)}");
+                FinishRace();
             }
             else
             {
@@ -177,10 +193,25 @@ namespace DeskRacers
             RefreshCheckpointVisuals();
         }
 
+        // Termina a corrida e bloqueia novos checkpoints.
+        void FinishRace()
+        {
+            raceFinished = true;
+            nextCheckpoint = -1;
+
+            if (player != null)
+            {
+                player.SetInputLocked(true);
+            }
+
+            ShowMessage($"Corrida terminada em {FormatTime(elapsedTime)}");
+            RefreshCheckpointVisuals();
+        }
+
         // Volta o jogador ao ultimo checkpoint valido.
         public void RespawnAtLastCheckpoint()
         {
-            if (player == null)
+            if (player == null || raceFinished)
             {
                 return;
             }
@@ -220,6 +251,7 @@ namespace DeskRacers
                 elapsedTime = elapsedTime,
                 coins = player.Coins,
                 unlockAll = unlockAll,
+                raceFinished = raceFinished,
                 lastCheckpointPosition = lastCheckpointPosition,
                 lastCheckpointRotation = lastCheckpointRotation
             };
@@ -243,9 +275,11 @@ namespace DeskRacers
             nextCheckpoint = Mathf.Clamp(data.nextCheckpoint, 0, checkpointCount - 1);
             elapsedTime = Mathf.Max(0f, data.elapsedTime);
             unlockAll = data.unlockAll;
+            raceFinished = data.raceFinished;
             lastCheckpointPosition = data.lastCheckpointPosition;
             lastCheckpointRotation = data.lastCheckpointRotation;
             player.TeleportTo(data.position, data.rotation, data.coins);
+            player.SetInputLocked(raceFinished);
             AppendLog($"Load executado na Volta {lap} aos {FormatTime(elapsedTime)}");
             ShowMessage("Jogo carregado.");
             RefreshCheckpointVisuals();
@@ -261,7 +295,7 @@ namespace DeskRacers
 
             foreach (RaceCheckpoint checkpoint in checkpoints)
             {
-                bool shouldShow = checkpoint.checkpointIndex == nextCheckpoint;
+                bool shouldShow = !raceFinished && checkpoint.checkpointIndex == nextCheckpoint;
                 checkpoint.SetVisualActive(shouldShow);
             }
         }
@@ -329,6 +363,7 @@ namespace DeskRacers
         public float elapsedTime;
         public int coins;
         public bool unlockAll;
+        public bool raceFinished;
         public Vector3 lastCheckpointPosition;
         public Quaternion lastCheckpointRotation;
     }
