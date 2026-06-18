@@ -33,6 +33,9 @@ namespace DeskRacers
         float stuckTimer;
         float reverseTimer;
 
+        public int CurrentWaypoint => currentWaypoint;
+        public float ProgressDistance => currentWaypoint * 1000f - DistanceToCurrentWaypoint();
+
         // Prepara o Rigidbody e cria uma pequena variacao entre oponentes.
         void Awake()
         {
@@ -79,6 +82,19 @@ namespace DeskRacers
             Vector3 desiredDirection = AvoidObstacles(toWaypoint.normalized);
             Quaternion targetRotation = Quaternion.LookRotation(desiredDirection, Vector3.up);
             rb.MoveRotation(Quaternion.RotateTowards(rb.rotation, targetRotation, turnSpeed * Time.fixedDeltaTime));
+        }
+
+        // Mede a distancia ate ao waypoint que a IA esta a seguir.
+        float DistanceToCurrentWaypoint()
+        {
+            if (waypoints == null || waypoints.Length == 0 || currentWaypoint >= waypoints.Length)
+            {
+                return 9999f;
+            }
+
+            Vector3 toWaypoint = waypoints[currentWaypoint].position - transform.position;
+            toWaypoint.y = 0f;
+            return toWaypoint.magnitude;
         }
 
         // Ajusta a direccao quando existe obstaculo a frente do carro.

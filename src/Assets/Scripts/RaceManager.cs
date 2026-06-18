@@ -1,9 +1,9 @@
 using System;
 using System.IO;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 namespace DeskRacers
 {
@@ -17,11 +17,11 @@ namespace DeskRacers
         public Transform startRespawnPoint;
 
         [Header("UI")]
-        public Text speedText;
-        public Text lapText;
-        public Text positionText;
-        public Text powerUpText;
-        public Text messageText;
+        public TMP_Text speedText;
+        public TMP_Text lapText;
+        public TMP_Text positionText;
+        public TMP_Text powerUpText;
+        public TMP_Text messageText;
         public GameObject pausePanel;
 
         int lap = 1;
@@ -33,6 +33,7 @@ namespace DeskRacers
         Vector3 lastCheckpointPosition;
         Quaternion lastCheckpointRotation;
         RaceCheckpoint[] checkpoints;
+        AICarController[] opponents;
 
         string SavePath => Path.Combine(Application.persistentDataPath, "deskracers_save.json");
         string LogPath => Path.Combine(Application.persistentDataPath, "log.txt");
@@ -49,6 +50,7 @@ namespace DeskRacers
             }
 
             checkpoints = FindObjectsByType<RaceCheckpoint>(FindObjectsInactive.Include);
+            opponents = FindObjectsByType<AICarController>(FindObjectsInactive.Include);
             RefreshCheckpointVisuals();
 
             if (pausePanel != null)
@@ -114,13 +116,69 @@ namespace DeskRacers
 
             if (positionText != null)
             {
-                positionText.text = "1/4";
+                int racers = 1 + (opponents != null ? opponents.Length : 0);
+                positionText.text = $"{CalculatePlayerPosition()}/{racers}";
             }
 
             if (powerUpText != null)
             {
                 powerUpText.text = player.currentPowerUp.ToString();
             }
+        }
+
+        // Calcula a posicao do jogador comparando progresso com os oponentes.
+        int CalculatePlayerPosition()
+        {
+            if (player == null || opponents == null)
+            {
+                return 1;
+            }
+
+            float playerProgress = GetPlayerProgress();
+            int position = 1;
+
+            foreach (AICarController opponent in opponents)
+            {
+                if (opponent != null && opponent.ProgressDistance > playerProgress)
+                {
+                    position++;
+                }
+            }
+
+            return position;
+        }
+
+        // Calcula progresso do jogador pelo proximo checkpoint e distancia ate ele.
+        float GetPlayerProgress()
+        {
+            Transform targetCheckpoint = GetCheckpointTransform(nextCheckpoint);
+            if (targetCheckpoint == null)
+            {
+                return lap * checkpointCount * 1000f;
+            }
+
+            Vector3 toCheckpoint = targetCheckpoint.position - player.transform.position;
+            toCheckpoint.y = 0f;
+            return ((lap - 1) * checkpointCount + nextCheckpoint) * 1000f - toCheckpoint.magnitude;
+        }
+
+        // Encontra o transform do checkpoint com o indice indicado.
+        Transform GetCheckpointTransform(int checkpointIndex)
+        {
+            if (checkpoints == null)
+            {
+                return null;
+            }
+
+            foreach (RaceCheckpoint checkpoint in checkpoints)
+            {
+                if (checkpoint != null && checkpoint.checkpointIndex == checkpointIndex)
+                {
+                    return checkpoint.transform;
+                }
+            }
+
+            return null;
         }
 
         // Abre ou fecha o menu de pausa.
