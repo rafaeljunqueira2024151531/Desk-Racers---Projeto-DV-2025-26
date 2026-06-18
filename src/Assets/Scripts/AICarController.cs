@@ -26,6 +26,7 @@ namespace DeskRacers
 
         Rigidbody rb;
         int currentWaypoint;
+        int completedLaps;
         float speed;
         float speedMultiplier = 1f;
         float targetSpeedMultiplier = 1f;
@@ -34,7 +35,10 @@ namespace DeskRacers
         float reverseTimer;
 
         public int CurrentWaypoint => currentWaypoint;
+        public int CompletedLaps => completedLaps;
+        public int WaypointCount => waypoints != null ? waypoints.Length : 0;
         public float ProgressDistance => currentWaypoint * 1000f - DistanceToCurrentWaypoint();
+        public float DistanceToWaypoint => DistanceToCurrentWaypoint();
 
         // Prepara o Rigidbody e cria uma pequena variacao entre oponentes.
         void Awake()
@@ -67,7 +71,13 @@ namespace DeskRacers
 
             if (toWaypoint.magnitude <= waypointRadius)
             {
-                currentWaypoint = (currentWaypoint + 1) % waypoints.Length;
+                currentWaypoint++;
+                if (currentWaypoint >= waypoints.Length)
+                {
+                    currentWaypoint = 0;
+                    completedLaps++;
+                }
+
                 return;
             }
 

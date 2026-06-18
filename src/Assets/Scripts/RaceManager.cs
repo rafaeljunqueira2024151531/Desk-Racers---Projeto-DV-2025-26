@@ -21,6 +21,7 @@ namespace DeskRacers
         public TMP_Text lapText;
         public TMP_Text positionText;
         public TMP_Text powerUpText;
+        public TMP_Text timerText;
         public TMP_Text messageText;
         public GameObject pausePanel;
 
@@ -124,6 +125,11 @@ namespace DeskRacers
             {
                 powerUpText.text = player.currentPowerUp.ToString();
             }
+
+            if (timerText != null)
+            {
+                timerText.text = FormatTimeWithCentiseconds(elapsedTime);
+            }
         }
 
         // Calcula a posicao do jogador comparando progresso com os oponentes.
@@ -139,13 +145,26 @@ namespace DeskRacers
 
             foreach (AICarController opponent in opponents)
             {
-                if (opponent != null && opponent.ProgressDistance > playerProgress)
+                if (opponent != null && GetOpponentProgress(opponent) > playerProgress)
                 {
                     position++;
                 }
             }
 
             return position;
+        }
+
+        // Calcula progresso de um oponente, incluindo voltas ja completadas.
+        float GetOpponentProgress(AICarController opponent)
+        {
+            if (opponent.WaypointCount <= 0)
+            {
+                return -9999f;
+            }
+
+            float normalizedCheckpoint = (opponent.CurrentWaypoint / (float)opponent.WaypointCount) * checkpointCount;
+            float progress = (opponent.CompletedLaps * checkpointCount + normalizedCheckpoint) * 1000f;
+            return progress - opponent.DistanceToWaypoint;
         }
 
         // Calcula progresso do jogador pelo proximo checkpoint e distancia ate ele.
@@ -406,6 +425,15 @@ namespace DeskRacers
             int minutes = Mathf.FloorToInt(time / 60f);
             int seconds = Mathf.FloorToInt(time % 60f);
             return $"{minutes:00}:{seconds:00}";
+        }
+
+        // Formata segundos em mm:ss.cc para o cronometro do HUD.
+        static string FormatTimeWithCentiseconds(float time)
+        {
+            int minutes = Mathf.FloorToInt(time / 60f);
+            int seconds = Mathf.FloorToInt(time % 60f);
+            int centiseconds = Mathf.FloorToInt((time * 100f) % 100f);
+            return $"{minutes:00}:{seconds:00}.{centiseconds:00}";
         }
     }
 
