@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
@@ -24,6 +25,12 @@ namespace DeskRacers
         public TMP_Text timerText;
         public TMP_Text messageText;
         public GameObject pausePanel;
+
+        [Header("Fim da corrida")]
+        public GameObject finishPanel;
+        public TMP_Text finalPositionText;
+        public GameObject firstFinishButton;
+        public string nextTrackSceneName;
 
         int lap = 1;
         int nextCheckpoint;
@@ -57,6 +64,11 @@ namespace DeskRacers
             if (pausePanel != null)
             {
                 pausePanel.SetActive(false);
+            }
+
+            if (finishPanel != null)
+            {
+                finishPanel.SetActive(false);
             }
         }
 
@@ -203,6 +215,11 @@ namespace DeskRacers
         // Abre ou fecha o menu de pausa.
         public void TogglePause()
         {
+            if (raceFinished)
+            {
+                return;
+            }
+
             paused = !paused;
             Time.timeScale = paused ? 0f : 1f;
 
@@ -281,8 +298,41 @@ namespace DeskRacers
                 player.SetInputLocked(true);
             }
 
-            ShowMessage($"Corrida terminada em {FormatTime(elapsedTime)}");
+            ShowFinishPanel();
+            StopRaceAudio();
             RefreshCheckpointVisuals();
+            Time.timeScale = 0f;
+        }
+
+        // Desliga os sons de motor quando a corrida acaba.
+        void StopRaceAudio()
+        {
+            CarEngineAudio[] engineAudios = FindObjectsByType<CarEngineAudio>(FindObjectsInactive.Include);
+            foreach (CarEngineAudio engineAudio in engineAudios)
+            {
+                engineAudio.StopEngine();
+            }
+        }
+
+        // Mostra a tela final com a classificacao do jogador.
+        void ShowFinishPanel()
+        {
+            if (finishPanel != null)
+            {
+                finishPanel.SetActive(true);
+            }
+
+            if (finalPositionText != null)
+            {
+                int racers = 1 + (opponents != null ? opponents.Length : 0);
+                finalPositionText.text = $"Terminaste em {CalculatePlayerPosition()}/{racers}\nTempo: {FormatTimeWithCentiseconds(elapsedTime)}";
+            }
+
+            if (EventSystem.current != null && firstFinishButton != null)
+            {
+                EventSystem.current.SetSelectedGameObject(null);
+                EventSystem.current.SetSelectedGameObject(firstFinishButton);
+            }
         }
 
         // Volta o jogador ao ultimo checkpoint valido.
@@ -357,6 +407,13 @@ namespace DeskRacers
             lastCheckpointRotation = data.lastCheckpointRotation;
             player.TeleportTo(data.position, data.rotation, data.coins);
             player.SetInputLocked(raceFinished);
+            Time.timeScale = raceFinished ? 0f : 1f;
+            if (raceFinished)
+            {
+                ShowFinishPanel();
+                StopRaceAudio();
+            }
+
             AppendLog($"Load executado na Volta {lap} aos {FormatTime(elapsedTime)}");
             ShowMessage("Jogo carregado.");
             RefreshCheckpointVisuals();
@@ -382,6 +439,16 @@ namespace DeskRacers
         {
             Time.timeScale = 1f;
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
+
+        // Carrega a proxima pista configurada no Inspector.
+        public void LoadNextTrack()
+        {
+            Time.timeScale = 1f;
+            if (!string.IsNullOrWhiteSpace(nextTrackSceneName))
+            {
+                SceneManager.LoadScene(nextTrackSceneName);
+            }
         }
 
         // Volta para a scene de menu principal.

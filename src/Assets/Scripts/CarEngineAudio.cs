@@ -24,6 +24,7 @@ namespace DeskRacers
         AudioSource engineSource;
         AudioSource startupSource;
         AudioClip currentLoopClip;
+        bool muted;
 
         // Prepara as fontes de audio do motor e do arranque.
         void Awake()
@@ -59,7 +60,7 @@ namespace DeskRacers
         // Actualiza clip, pitch e volume de acordo com a velocidade.
         void Update()
         {
-            if (carRigidbody == null)
+            if (muted || carRigidbody == null)
             {
                 return;
             }
@@ -70,6 +71,29 @@ namespace DeskRacers
 
             engineSource.pitch = Mathf.Lerp(minPitch, maxPitch, speed01);
             engineSource.volume = Mathf.Lerp(minVolume, maxVolume, speed01);
+        }
+
+        // Desliga todos os sons do motor.
+        public void StopEngine()
+        {
+            muted = true;
+            if (engineSource != null)
+            {
+                engineSource.Stop();
+            }
+
+            if (startupSource != null)
+            {
+                startupSource.Stop();
+            }
+        }
+
+        // Volta a permitir sons do motor.
+        public void ResumeEngine()
+        {
+            muted = false;
+            currentLoopClip = null;
+            SetLoopClip(idleClip);
         }
 
         // Escolhe o clip de motor mais adequado ao nivel de velocidade.
