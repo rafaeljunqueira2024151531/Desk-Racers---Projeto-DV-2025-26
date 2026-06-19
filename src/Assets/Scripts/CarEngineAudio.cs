@@ -25,6 +25,7 @@ namespace DeskRacers
         AudioSource startupSource;
         AudioClip currentLoopClip;
         bool muted;
+        bool paused;
 
         // Prepara as fontes de audio do motor e do arranque.
         void Awake()
@@ -43,6 +44,9 @@ namespace DeskRacers
         // Toca o som de arranque e inicia o loop do motor.
         void Start()
         {
+            muted = false;
+            paused = false;
+
             if (carRigidbody == null)
             {
                 carRigidbody = GetComponent<Rigidbody>();
@@ -60,7 +64,7 @@ namespace DeskRacers
         // Actualiza clip, pitch e volume de acordo com a velocidade.
         void Update()
         {
-            if (muted || carRigidbody == null)
+            if (muted || paused || carRigidbody == null)
             {
                 return;
             }
@@ -92,8 +96,48 @@ namespace DeskRacers
         public void ResumeEngine()
         {
             muted = false;
+            paused = false;
             currentLoopClip = null;
             SetLoopClip(idleClip);
+        }
+
+        // Pausa temporariamente o som do motor.
+        public void PauseEngine()
+        {
+            paused = true;
+            if (engineSource != null)
+            {
+                engineSource.Pause();
+            }
+
+            if (startupSource != null)
+            {
+                startupSource.Pause();
+            }
+        }
+
+        // Retoma o som do motor apos uma pausa.
+        public void UnpauseEngine()
+        {
+            if (muted)
+            {
+                return;
+            }
+
+            paused = false;
+            if (engineSource != null)
+            {
+                engineSource.UnPause();
+                if (!engineSource.isPlaying && engineSource.clip != null)
+                {
+                    engineSource.Play();
+                }
+            }
+
+            if (startupSource != null)
+            {
+                startupSource.UnPause();
+            }
         }
 
         // Escolhe o clip de motor mais adequado ao nivel de velocidade.

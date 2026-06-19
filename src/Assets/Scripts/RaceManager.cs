@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace DeskRacers
 {
@@ -25,6 +26,9 @@ namespace DeskRacers
         public TMP_Text timerText;
         public TMP_Text messageText;
         public GameObject pausePanel;
+        public GameObject optionsPanel;
+        public Slider volumeSlider;
+        public GameObject firstPauseButton;
 
         [Header("Fim da corrida")]
         public GameObject finishPanel;
@@ -66,6 +70,17 @@ namespace DeskRacers
                 pausePanel.SetActive(false);
             }
 
+            if (optionsPanel != null)
+            {
+                optionsPanel.SetActive(false);
+            }
+
+            if (volumeSlider != null)
+            {
+                volumeSlider.value = AudioListener.volume;
+                volumeSlider.onValueChanged.AddListener(SetVolume);
+            }
+
             if (finishPanel != null)
             {
                 finishPanel.SetActive(false);
@@ -83,7 +98,15 @@ namespace DeskRacers
             Keyboard keyboard = Keyboard.current;
             Gamepad pad = Gamepad.current;
             bool pausePressed = keyboard != null && keyboard.escapeKey.wasPressedThisFrame;
+            bool backPressed = pausePressed || (pad != null && pad.buttonEast.wasPressedThisFrame);
             pausePressed = pausePressed || (pad != null && pad.startButton.wasPressedThisFrame);
+
+            if (paused && backPressed)
+            {
+                BackFromPauseOrOptions();
+                RefreshHud();
+                return;
+            }
 
             if (pausePressed)
             {
@@ -232,6 +255,13 @@ namespace DeskRacers
             {
                 pausePanel.SetActive(paused);
             }
+
+            SetRaceAudioPaused(paused);
+
+            if (paused)
+            {
+                SelectUiObject(firstPauseButton);
+            }
         }
 
         // Regista a passagem por um checkpoint na ordem certa.
@@ -314,6 +344,52 @@ namespace DeskRacers
             }
         }
 
+        // Pausa ou retoma os sons dos motores durante o menu de pausa.
+        void SetRaceAudioPaused(bool audioPaused)
+        {
+            CarEngineAudio[] engineAudios = FindObjectsByType<CarEngineAudio>(FindObjectsInactive.Include);
+            foreach (CarEngineAudio engineAudio in engineAudios)
+            {
+                if (audioPaused)
+                {
+                    engineAudio.PauseEngine();
+                }
+                else
+                {
+                    engineAudio.UnpauseEngine();
+                }
+            }
+        }
+
+        // Fecha o menu de pausa depois de save/load.
+        void ClosePauseAfterSaveLoad()
+        {
+            if (!paused || raceFinished)
+            {
+                return;
+            }
+
+            paused = false;
+            Time.timeScale = 1f;
+
+            if (player != null)
+            {
+                player.SetInputLocked(false);
+            }
+
+            if (pausePanel != null)
+            {
+                pausePanel.SetActive(false);
+            }
+
+            if (optionsPanel != null)
+            {
+                optionsPanel.SetActive(false);
+            }
+
+            SetRaceAudioPaused(false);
+        }
+
         // Mostra a tela final com a classificacao do jogador.
         void ShowFinishPanel()
         {
@@ -328,11 +404,7 @@ namespace DeskRacers
                 finalPositionText.text = $"Terminaste em {CalculatePlayerPosition()}/{racers}\nTempo: {FormatTimeWithCentiseconds(elapsedTime)}";
             }
 
-            if (EventSystem.current != null && firstFinishButton != null)
-            {
-                EventSystem.current.SetSelectedGameObject(null);
-                EventSystem.current.SetSelectedGameObject(firstFinishButton);
-            }
+            SelectUiObject(firstFinishButton);
         }
 
         // Volta o jogador ao ultimo checkpoint valido.
@@ -345,6 +417,54 @@ namespace DeskRacers
 
             player.TeleportTo(lastCheckpointPosition, lastCheckpointRotation, player.Coins);
             ShowMessage("Reposicionado no ultimo checkpoint.");
+        }
+
+        // Abre ou fecha o painel de opcoes.
+        public void ToggleOptionsPanel()
+        {
+            if (optionsPanel != null)
+            {
+                optionsPanel.SetActive(!optionsPanel.activeSelf);
+            }
+        }
+
+        // Volta atras no menu de pausa ou retoma a corrida.
+        public void BackFromPauseOrOptions()
+        {
+            if (optionsPanel != null && optionsPanel.activeSelf)
+            {
+                optionsPanel.SetActive(false);
+                SelectUiObject(firstPauseButton);
+
+                return;
+            }
+
+            TogglePause();
+        }
+
+        // Ajusta o volume geral do jogo.
+        public void SetVolume(float value)
+        {
+            AudioListener.volume = value;
+        }
+
+        // Seleciona um botao da UI sem rebentar se a referencia foi apagada no editor.
+        void SelectUiObject(GameObject target)
+        {
+            try
+            {
+                if (EventSystem.current == null || target == null || !target.activeInHierarchy)
+                {
+                    return;
+                }
+
+                EventSystem.current.SetSelectedGameObject(null);
+                EventSystem.current.SetSelectedGameObject(target);
+            }
+            catch (MissingReferenceException)
+            {
+                // Acontece quando um botao foi apagado/recriado mas ainda ficou ligado no Inspector.
+            }
         }
 
         // Guarda a posicao e rotacao usadas para respawn.
@@ -386,6 +506,7 @@ namespace DeskRacers
             File.WriteAllText(SavePath, JsonUtility.ToJson(data, true));
             AppendLog($"Save executado na Volta {lap} aos {FormatTime(elapsedTime)}");
             ShowMessage("Jogo gravado.");
+            ClosePauseAfterSaveLoad();
         }
 
         // Carrega o estado guardado se existir um save.
@@ -417,6 +538,7 @@ namespace DeskRacers
             AppendLog($"Load executado na Volta {lap} aos {FormatTime(elapsedTime)}");
             ShowMessage("Jogo carregado.");
             RefreshCheckpointVisuals();
+            ClosePauseAfterSaveLoad();
         }
 
         // Mostra o proximo checkpoint e apaga os restantes indicadores.

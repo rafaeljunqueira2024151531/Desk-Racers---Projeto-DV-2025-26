@@ -144,8 +144,8 @@ namespace DeskRacers
             }
 
             bool wasDrifting = driftHeld;
-            driftHeld = driftHeld || pad.buttonEast.isPressed;
-            if (wasDrifting && pad.buttonEast.wasReleasedThisFrame)
+            driftHeld = driftHeld || pad.buttonWest.isPressed;
+            if (wasDrifting && pad.buttonWest.wasReleasedThisFrame)
             {
                 ReleaseDriftTurbo();
             }
