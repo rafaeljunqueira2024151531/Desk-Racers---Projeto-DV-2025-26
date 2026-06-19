@@ -16,7 +16,6 @@ namespace DeskRacers
         public string trackName = "Setup Gamer";
         public int totalLaps = 3;
         public int checkpointCount = 4;
-        public Transform startRespawnPoint;
 
         [Header("UI")]
         public TMP_Text speedText;
@@ -56,11 +55,11 @@ namespace DeskRacers
         void Start()
         {
             Time.timeScale = 1f;
+            unlockAll = PlayerPrefs.GetInt("UnlockAllTracks", 0) == 1;
             if (player != null)
             {
-                Transform respawn = startRespawnPoint != null ? startRespawnPoint : player.transform;
-                lastCheckpointPosition = respawn.position;
-                lastCheckpointRotation = respawn.rotation;
+                lastCheckpointPosition = player.transform.position;
+                lastCheckpointRotation = player.transform.rotation;
             }
 
             checkpoints = FindObjectsByType<RaceCheckpoint>(FindObjectsInactive.Include);
@@ -119,10 +118,12 @@ namespace DeskRacers
                 TogglePause();
             }
 
-            if (keyboard != null && keyboard.f2Key.wasPressedThisFrame)
+            if (keyboard != null && (keyboard.digit2Key.wasPressedThisFrame || keyboard.numpad2Key.wasPressedThisFrame))
             {
                 unlockAll = true;
-                ShowMessage("Cheat F2: pistas desbloqueadas.");
+                PlayerPrefs.SetInt("UnlockAllTracks", 1);
+                PlayerPrefs.Save();
+                ShowMessage("Cheat 2: pistas desbloqueadas.");
             }
 
             if (keyboard != null && keyboard.rKey.wasPressedThisFrame)
@@ -130,7 +131,7 @@ namespace DeskRacers
                 RespawnAtLastCheckpoint();
             }
 
-            if (pad != null && (pad.selectButton.wasPressedThisFrame || pad.leftStickButton.wasPressedThisFrame))
+            if (pad != null && pad.leftStickButton.wasPressedThisFrame)
             {
                 RespawnAtLastCheckpoint();
             }
@@ -334,6 +335,7 @@ namespace DeskRacers
         {
             raceFinished = true;
             nextCheckpoint = -1;
+            UnlockCompletedTrackRewards();
 
             if (player != null)
             {
@@ -345,6 +347,17 @@ namespace DeskRacers
             RefreshCheckpointVisuals();
             UpdateControlsTutorialVisibility();
             Time.timeScale = 0f;
+        }
+
+        // Desbloqueia conteudo quando uma pista e concluida.
+        void UnlockCompletedTrackRewards()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            if (activeSceneName == "Track_Office" || trackName.Contains("Office"))
+            {
+                PlayerPrefs.SetInt("KitchenUnlocked", 1);
+                PlayerPrefs.Save();
+            }
         }
 
         // Desliga os sons de motor quando a corrida acaba.
@@ -466,6 +479,7 @@ namespace DeskRacers
         {
             if (optionsPanel != null && optionsPanel.activeSelf)
             {
+                ClearUiSelection();
                 optionsPanel.SetActive(false);
                 if (pausePanel != null)
                 {
@@ -516,6 +530,15 @@ namespace DeskRacers
             catch (MissingReferenceException)
             {
                 // Acontece quando um botao foi apagado/recriado mas ainda ficou ligado no Inspector.
+            }
+        }
+
+        // Remove a selecao actual antes de trocar entre paineis.
+        void ClearUiSelection()
+        {
+            if (EventSystem.current != null)
+            {
+                EventSystem.current.SetSelectedGameObject(null);
             }
         }
 
@@ -639,7 +662,7 @@ namespace DeskRacers
         }
 
         // Mostra uma mensagem temporaria no ecra.
-        void ShowMessage(string message)
+        public void ShowMessage(string message)
         {
             if (messageText == null)
             {

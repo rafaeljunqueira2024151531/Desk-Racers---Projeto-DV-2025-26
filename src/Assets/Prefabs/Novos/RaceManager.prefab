@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2605842783416821998
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 846841594530799229}
+  - component: {fileID: 7875202386036348871}
+  m_Layer: 0
+  m_Name: RaceManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &846841594530799229
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2605842783416821998}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -3.05423, y: 0.10437, z: -1.28653}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7875202386036348871
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2605842783416821998}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bcbb8872e15cad04d8140bd8aa5603a3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DeskRacers.RaceManager
+  player: {fileID: 0}
+  trackName: Track Office
+  totalLaps: 8
+  checkpointCount: 4
+  startRespawnPoint: {fileID: 0}
+  speedText: {fileID: 0}
+  lapText: {fileID: 0}
+  positionText: {fileID: 0}
+  powerUpText: {fileID: 0}
+  timerText: {fileID: 0}
+  messageText: {fileID: 0}
+  pausePanel: {fileID: 0}
+  optionsPanel: {fileID: 0}
+  controlsTutorialPanel: {fileID: 0}
+  volumeSlider: {fileID: 0}
+  defaultVolume: 0.5
+  firstPauseButton: {fileID: 0}
+  finishPanel: {fileID: 0}
+  finalPositionText: {fileID: 0}
+  firstFinishButton: {fileID: 0}
+  nextTrackSceneName: Track_Kitchen

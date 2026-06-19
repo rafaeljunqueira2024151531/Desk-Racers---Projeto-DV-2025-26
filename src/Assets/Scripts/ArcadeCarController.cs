@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -35,6 +36,7 @@ namespace DeskRacers
 
         Rigidbody rb;
         Collider[] colliders;
+        readonly List<Collider> ignoredGhostColliders = new List<Collider>();
         float throttle;
         float steering;
         float turboTimer;
@@ -287,25 +289,57 @@ namespace DeskRacers
                 return;
             }
 
-            if (keyboard.f1Key.wasPressedThisFrame)
+            if (keyboard.digit1Key.wasPressedThisFrame || keyboard.numpad1Key.wasPressedThisFrame)
             {
-                currentSpeed = maxSpeed;
+                ActivateMaxSpeedCheat();
+                NotifyCheat("Cheat 1: velocidade maxima.");
             }
 
-            if (keyboard.f3Key.wasPressedThisFrame)
+            if (keyboard.digit3Key.wasPressedThisFrame || keyboard.numpad3Key.wasPressedThisFrame)
             {
                 SetGhostMode(!ghostMode);
+                NotifyCheat(ghostMode ? "Cheat 3: Ghost Mode ON." : "Cheat 3: Ghost Mode OFF.");
             }
 
-            if (keyboard.f4Key.wasPressedThisFrame)
+            if (keyboard.digit4Key.wasPressedThisFrame || keyboard.numpad4Key.wasPressedThisFrame)
             {
                 unlimitedTurbo = !unlimitedTurbo;
+                if (unlimitedTurbo)
+                {
+                    currentPowerUp = PowerUpType.Turbo;
+                }
+
+                NotifyCheat(unlimitedTurbo ? "Cheat 4: turbo infinito ON." : "Cheat 4: turbo infinito OFF.");
             }
+        }
+
+        // Mostra no HUD qual cheat foi activado.
+        void NotifyCheat(string message)
+        {
+            RaceManager raceManager = FindFirstObjectByType<RaceManager>();
+            if (raceManager != null)
+            {
+                raceManager.ShowMessage(message);
+            }
+        }
+
+        // Mete o carro imediatamente na velocidade maxima para demonstracao.
+        void ActivateMaxSpeedCheat()
+        {
+            currentSpeed = maxSpeed;
+            Vector3 localVelocity = transform.InverseTransformDirection(rb.linearVelocity);
+            localVelocity.z = maxSpeed;
+            rb.linearVelocity = transform.TransformDirection(localVelocity);
         }
 
         // Executa o efeito do power-up guardado.
         public void UsePowerUp()
         {
+            if (unlimitedTurbo && currentPowerUp == PowerUpType.None)
+            {
+                currentPowerUp = PowerUpType.Turbo;
+            }
+
             if (currentPowerUp == PowerUpType.Spring)
             {
                 rb.AddForce(Vector3.up * jumpForce + transform.forward * 3f, ForceMode.VelocityChange);
@@ -352,11 +386,78 @@ namespace DeskRacers
         // Liga ou desliga colisoes do carro para teste rapido da pista.
         public void SetGhostMode(bool enabled)
         {
+            if (ghostMode == enabled)
+            {
+                return;
+            }
+
             ghostMode = enabled;
+            if (!enabled)
+            {
+                RestoreGhostCollisions();
+                return;
+            }
+
+            Collider[] sceneColliders = FindObjectsByType<Collider>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            foreach (Collider sceneCollider in sceneColliders)
+            {
+                if (sceneCollider == null || sceneCollider.isTrigger || IsCarCollider(sceneCollider) || ShouldKeepCollisionInGhostMode(sceneCollider))
+                {
+                    continue;
+                }
+
+                foreach (Collider carCollider in colliders)
+                {
+                    Physics.IgnoreCollision(carCollider, sceneCollider, true);
+                }
+
+                ignoredGhostColliders.Add(sceneCollider);
+            }
+        }
+
+        // Repoe as colisoes que foram desligadas pelo ghost mode.
+        void RestoreGhostCollisions()
+        {
+            foreach (Collider sceneCollider in ignoredGhostColliders)
+            {
+                if (sceneCollider == null)
+                {
+                    continue;
+                }
+
+                foreach (Collider carCollider in colliders)
+                {
+                    Physics.IgnoreCollision(carCollider, sceneCollider, false);
+                }
+            }
+
+            ignoredGhostColliders.Clear();
+        }
+
+        // Verifica se o collider pertence ao proprio carro.
+        bool IsCarCollider(Collider other)
+        {
             foreach (Collider carCollider in colliders)
             {
-                carCollider.isTrigger = enabled;
+                if (other == carCollider)
+                {
+                    return true;
+                }
             }
+
+            return false;
+        }
+
+        // Mantem colisao com chao e rampas para o carro nao cair durante o cheat.
+        bool ShouldKeepCollisionInGhostMode(Collider other)
+        {
+            string objectName = other.gameObject.name.ToLowerInvariant();
+            if (objectName.Contains("floor") || objectName.Contains("ground") || objectName.Contains("road") || objectName.Contains("ramp"))
+            {
+                return true;
+            }
+
+            return other.bounds.max.y <= transform.position.y + 0.08f;
         }
 
         // Coloca o carro numa posicao guardada e limpa velocidades.

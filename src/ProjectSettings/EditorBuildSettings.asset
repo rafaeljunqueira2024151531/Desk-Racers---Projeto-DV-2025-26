@@ -9,7 +9,13 @@ EditorBuildSettings:
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 1
+    path: Assets/Scenes/MainMenu.unity
+    guid: b6feda93abb4f354aa6939137a6ff9be
+  - enabled: 1
     path: Assets/Scenes/Track_Office.unity
     guid: 4ef9c061f2b0e96449068eb14417a3f4
+  - enabled: 1
+    path: Assets/Scenes/Track_Kitchen.unity
+    guid: 039563afc84795c49826e741d8711db7
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

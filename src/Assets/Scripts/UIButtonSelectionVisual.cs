@@ -21,6 +21,12 @@ namespace DeskRacers
             ApplySelected(false);
         }
 
+        // Limpa o destaque quando o painel/botao e escondido.
+        void OnDisable()
+        {
+            ApplySelected(false);
+        }
+
         // Aplica destaque quando o botao e seleccionado por comando/teclado.
         public void OnSelect(BaseEventData eventData)
         {
@@ -36,7 +42,11 @@ namespace DeskRacers
         // Aplica destaque quando o rato passa por cima.
         public void OnPointerEnter(PointerEventData eventData)
         {
-            EventSystem.current.SetSelectedGameObject(gameObject);
+            if (EventSystem.current != null)
+            {
+                EventSystem.current.SetSelectedGameObject(gameObject);
+            }
+
             ApplySelected(true);
         }
 
