@@ -46,7 +46,8 @@ namespace DeskRacers
         Vector3 lastCheckpointPosition;
         Quaternion lastCheckpointRotation;
         RaceCheckpoint[] checkpoints;
-        AICarController[] opponents;
+        AICarControllerOffice[] officeOpponents;
+        AICarControllerKitchen[] kitchenOpponents;
 
         string SavePath => Path.Combine(Application.persistentDataPath, "deskracers_save.json");
         string LogPath => Path.Combine(Application.persistentDataPath, "log.txt");
@@ -63,7 +64,8 @@ namespace DeskRacers
             }
 
             checkpoints = FindObjectsByType<RaceCheckpoint>(FindObjectsInactive.Include);
-            opponents = FindObjectsByType<AICarController>(FindObjectsInactive.Include);
+            officeOpponents = FindObjectsByType<AICarControllerOffice>(FindObjectsInactive.Include);
+            kitchenOpponents = FindObjectsByType<AICarControllerKitchen>(FindObjectsInactive.Include);
             RefreshCheckpointVisuals();
 
             if (pausePanel != null)
@@ -159,7 +161,7 @@ namespace DeskRacers
 
             if (positionText != null)
             {
-                int racers = 1 + (opponents != null ? opponents.Length : 0);
+                int racers = 1 + GetOpponentCount();
                 positionText.text = $"{CalculatePlayerPosition()}/{racers}";
             }
 
@@ -177,7 +179,7 @@ namespace DeskRacers
         // Calcula a posicao do jogador comparando progresso com os oponentes.
         int CalculatePlayerPosition()
         {
-            if (player == null || opponents == null)
+            if (player == null)
             {
                 return 1;
             }
@@ -185,7 +187,15 @@ namespace DeskRacers
             float playerProgress = GetPlayerProgress();
             int position = 1;
 
-            foreach (AICarController opponent in opponents)
+            foreach (AICarControllerOffice opponent in officeOpponents)
+            {
+                if (opponent != null && GetOpponentProgress(opponent) > playerProgress)
+                {
+                    position++;
+                }
+            }
+
+            foreach (AICarControllerKitchen opponent in kitchenOpponents)
             {
                 if (opponent != null && GetOpponentProgress(opponent) > playerProgress)
                 {
@@ -197,7 +207,7 @@ namespace DeskRacers
         }
 
         // Calcula progresso de um oponente, incluindo voltas ja completadas.
-        float GetOpponentProgress(AICarController opponent)
+        float GetOpponentProgress(AICarControllerOffice opponent)
         {
             if (opponent.WaypointCount <= 0)
             {
@@ -207,6 +217,27 @@ namespace DeskRacers
             float normalizedCheckpoint = (opponent.CurrentWaypoint / (float)opponent.WaypointCount) * checkpointCount;
             float progress = (opponent.CompletedLaps * checkpointCount + normalizedCheckpoint) * 1000f;
             return progress - opponent.DistanceToWaypoint;
+        }
+
+        // Calcula progresso de um oponente da cozinha.
+        float GetOpponentProgress(AICarControllerKitchen opponent)
+        {
+            if (opponent.WaypointCount <= 0)
+            {
+                return -9999f;
+            }
+
+            float normalizedCheckpoint = (opponent.CurrentWaypoint / (float)opponent.WaypointCount) * checkpointCount;
+            float progress = (opponent.CompletedLaps * checkpointCount + normalizedCheckpoint) * 1000f;
+            return progress - opponent.DistanceToWaypoint;
+        }
+
+        // Conta quantos oponentes existem na scene actual.
+        int GetOpponentCount()
+        {
+            int officeCount = officeOpponents != null ? officeOpponents.Length : 0;
+            int kitchenCount = kitchenOpponents != null ? kitchenOpponents.Length : 0;
+            return officeCount + kitchenCount;
         }
 
         // Calcula progresso do jogador pelo proximo checkpoint e distancia ate ele.
@@ -427,7 +458,7 @@ namespace DeskRacers
 
             if (finalPositionText != null)
             {
-                int racers = 1 + (opponents != null ? opponents.Length : 0);
+                int racers = 1 + GetOpponentCount();
                 finalPositionText.text = $"Terminaste em {CalculatePlayerPosition()}/{racers}\nTempo: {FormatTimeWithCentiseconds(elapsedTime)}";
             }
 

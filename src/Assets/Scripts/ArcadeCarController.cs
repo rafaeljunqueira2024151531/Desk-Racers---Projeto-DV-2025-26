@@ -27,8 +27,7 @@ namespace DeskRacers
         public float turboTime = 0.75f;
 
         [Header("Power-ups")]
-        public float jumpForce = 7.5f;
-        public PowerUpType currentPowerUp = PowerUpType.Spring;
+        public PowerUpType currentPowerUp = PowerUpType.None;
 
         [Header("Cheats")]
         public bool ghostMode;
@@ -340,17 +339,9 @@ namespace DeskRacers
                 currentPowerUp = PowerUpType.Turbo;
             }
 
-            if (currentPowerUp == PowerUpType.Spring)
-            {
-                rb.AddForce(Vector3.up * jumpForce + transform.forward * 3f, ForceMode.VelocityChange);
-            }
-            else if (currentPowerUp == PowerUpType.Turbo)
+            if (currentPowerUp == PowerUpType.Turbo)
             {
                 turboTimer = turboTime;
-            }
-            else if (currentPowerUp == PowerUpType.Oil)
-            {
-                turboTimer = 0.25f;
             }
 
             if (!unlimitedTurbo)
@@ -474,8 +465,6 @@ namespace DeskRacers
     public enum PowerUpType
     {
         None,
-        Spring,
-        Turbo,
-        Oil
+        Turbo
     }
 }

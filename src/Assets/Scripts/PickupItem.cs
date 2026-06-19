@@ -14,6 +14,7 @@ namespace DeskRacers
         // Guarda referencias para esconder e mostrar o pickup.
         void Awake()
         {
+            powerUpType = PowerUpType.Turbo;
             itemCollider = GetComponent<Collider>();
             renderers = GetComponentsInChildren<Renderer>();
         }

@@ -3,7 +3,7 @@ using UnityEngine;
 namespace DeskRacers
 {
     [RequireComponent(typeof(Rigidbody))]
-    public class AICarController : MonoBehaviour
+    public class AICarControllerOffice : MonoBehaviour
     {
         public Transform[] waypoints;
         public float acceleration = 10f;
