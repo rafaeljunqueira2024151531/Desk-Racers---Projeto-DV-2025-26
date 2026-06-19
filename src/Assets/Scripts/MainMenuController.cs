@@ -48,7 +48,7 @@ namespace DeskRacers
         void Update()
         {
             Keyboard keyboard = Keyboard.current;
-            if (keyboard != null && (keyboard.digit2Key.wasPressedThisFrame || keyboard.numpad2Key.wasPressedThisFrame))
+            if (keyboard != null && keyboard.f2Key.wasPressedThisFrame)
             {
                 PlayerPrefs.SetInt("UnlockAllTracks", 1);
                 PlayerPrefs.Save();

@@ -288,19 +288,19 @@ namespace DeskRacers
                 return;
             }
 
-            if (keyboard.digit1Key.wasPressedThisFrame || keyboard.numpad1Key.wasPressedThisFrame)
+            if (keyboard.f1Key.wasPressedThisFrame)
             {
                 ActivateMaxSpeedCheat();
-                NotifyCheat("Cheat 1: velocidade maxima.");
+                NotifyCheat("Cheat F1: velocidade maxima.");
             }
 
-            if (keyboard.digit3Key.wasPressedThisFrame || keyboard.numpad3Key.wasPressedThisFrame)
+            if (keyboard.f3Key.wasPressedThisFrame)
             {
                 SetGhostMode(!ghostMode);
-                NotifyCheat(ghostMode ? "Cheat 3: Ghost Mode ON." : "Cheat 3: Ghost Mode OFF.");
+                NotifyCheat(ghostMode ? "Cheat F3: Ghost Mode ON." : "Cheat F3: Ghost Mode OFF.");
             }
 
-            if (keyboard.digit4Key.wasPressedThisFrame || keyboard.numpad4Key.wasPressedThisFrame)
+            if (keyboard.f4Key.wasPressedThisFrame)
             {
                 unlimitedTurbo = !unlimitedTurbo;
                 if (unlimitedTurbo)
@@ -308,7 +308,7 @@ namespace DeskRacers
                     currentPowerUp = PowerUpType.Turbo;
                 }
 
-                NotifyCheat(unlimitedTurbo ? "Cheat 4: turbo infinito ON." : "Cheat 4: turbo infinito OFF.");
+                NotifyCheat(unlimitedTurbo ? "Cheat F4: turbo infinito ON." : "Cheat F4: turbo infinito OFF.");
             }
         }
 

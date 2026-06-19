@@ -120,12 +120,12 @@ namespace DeskRacers
                 TogglePause();
             }
 
-            if (keyboard != null && (keyboard.digit2Key.wasPressedThisFrame || keyboard.numpad2Key.wasPressedThisFrame))
+            if (keyboard != null && keyboard.f2Key.wasPressedThisFrame)
             {
                 unlockAll = true;
                 PlayerPrefs.SetInt("UnlockAllTracks", 1);
                 PlayerPrefs.Save();
-                ShowMessage("Cheat 2: pistas desbloqueadas.");
+                ShowMessage("Cheat F2: pistas desbloqueadas.");
             }
 
             if (keyboard != null && keyboard.rKey.wasPressedThisFrame)
