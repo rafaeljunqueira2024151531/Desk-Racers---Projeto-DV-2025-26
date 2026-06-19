@@ -27,7 +27,9 @@ namespace DeskRacers
         public TMP_Text messageText;
         public GameObject pausePanel;
         public GameObject optionsPanel;
+        public GameObject controlsTutorialPanel;
         public Slider volumeSlider;
+        public float defaultVolume = 0.5f;
         public GameObject firstPauseButton;
 
         [Header("Fim da corrida")]
@@ -75,9 +77,11 @@ namespace DeskRacers
                 optionsPanel.SetActive(false);
             }
 
+            float savedVolume = PlayerPrefs.GetFloat("MasterVolume", defaultVolume);
+            SetVolume(savedVolume);
             if (volumeSlider != null)
             {
-                volumeSlider.value = AudioListener.volume;
+                volumeSlider.SetValueWithoutNotify(savedVolume);
                 volumeSlider.onValueChanged.AddListener(SetVolume);
             }
 
@@ -85,6 +89,8 @@ namespace DeskRacers
             {
                 finishPanel.SetActive(false);
             }
+
+            UpdateControlsTutorialVisibility();
         }
 
         // Actualiza tempo, UI, pausa e cheats globais.
@@ -256,7 +262,13 @@ namespace DeskRacers
                 pausePanel.SetActive(paused);
             }
 
+            if (!paused && optionsPanel != null)
+            {
+                optionsPanel.SetActive(false);
+            }
+
             SetRaceAudioPaused(paused);
+            UpdateControlsTutorialVisibility();
 
             if (paused)
             {
@@ -331,6 +343,7 @@ namespace DeskRacers
             ShowFinishPanel();
             StopRaceAudio();
             RefreshCheckpointVisuals();
+            UpdateControlsTutorialVisibility();
             Time.timeScale = 0f;
         }
 
@@ -388,6 +401,7 @@ namespace DeskRacers
             }
 
             SetRaceAudioPaused(false);
+            UpdateControlsTutorialVisibility();
         }
 
         // Mostra a tela final com a classificacao do jogador.
@@ -422,9 +436,28 @@ namespace DeskRacers
         // Abre ou fecha o painel de opcoes.
         public void ToggleOptionsPanel()
         {
-            if (optionsPanel != null)
+            if (optionsPanel == null)
             {
-                optionsPanel.SetActive(!optionsPanel.activeSelf);
+                return;
+            }
+
+            bool openingOptions = !optionsPanel.activeSelf;
+            optionsPanel.SetActive(openingOptions);
+
+            if (pausePanel != null)
+            {
+                pausePanel.SetActive(!openingOptions);
+            }
+
+            UpdateControlsTutorialVisibility();
+
+            if (openingOptions && volumeSlider != null)
+            {
+                SelectUiObject(volumeSlider.gameObject);
+            }
+            else
+            {
+                SelectUiObject(firstPauseButton);
             }
         }
 
@@ -434,6 +467,12 @@ namespace DeskRacers
             if (optionsPanel != null && optionsPanel.activeSelf)
             {
                 optionsPanel.SetActive(false);
+                if (pausePanel != null)
+                {
+                    pausePanel.SetActive(true);
+                }
+
+                UpdateControlsTutorialVisibility();
                 SelectUiObject(firstPauseButton);
 
                 return;
@@ -445,7 +484,20 @@ namespace DeskRacers
         // Ajusta o volume geral do jogo.
         public void SetVolume(float value)
         {
-            AudioListener.volume = value;
+            float clampedValue = Mathf.Clamp01(value);
+            AudioListener.volume = clampedValue;
+            PlayerPrefs.SetFloat("MasterVolume", clampedValue);
+        }
+
+        // Mostra os comandos apenas durante a corrida normal.
+        void UpdateControlsTutorialVisibility()
+        {
+            if (controlsTutorialPanel == null)
+            {
+                return;
+            }
+
+            controlsTutorialPanel.SetActive(!paused && !raceFinished);
         }
 
         // Seleciona um botao da UI sem rebentar se a referencia foi apagada no editor.
